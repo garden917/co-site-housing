@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주거지원 대시보드 — A · B</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e6e8ec; --muted:#9aa3b2; --accent:#5b9dff;
+    --ok:#2ecc71; --okbg:#13351f; --warn:#f1b24a; --warnbg:#3a2c12;
+    --info:#5b9dff; --infobg:#16263f; --no:#ff6b6b; --nobg:#3a1d1d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;line-height:1.55;font-size:15px}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:18px;margin:30px 0 12px;border-left:3px solid var(--accent);padding-left:10px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+  /* 상단 메뉴 탭 */
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:8px 0 22px;flex-wrap:wrap}
+  .tabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--muted);
+    font-size:15px;font-weight:700;padding:10px 16px;cursor:pointer}
+  .tabs button.active{color:var(--txt);border-bottom-color:var(--accent)}
+  .view{display:none} .view.active{display:block}
+  .disclaimer{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;font-size:12.5px;color:var(--muted);margin:0 0 18px}
+  .grid{display:grid;gap:12px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .two{grid-template-columns:1fr 1fr}
+  @media(max-width:680px){
+    .two{grid-template-columns:1fr}
+    table{display:block;overflow-x:auto}
+    th,td{min-width:112px}
+    .disclaimer,.card,.notes{overflow-wrap:anywhere}
+  }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .person h3{margin:0 0 8px;font-size:16px}
+  .person ul{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px}
+  .toggle{display:inline-flex;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:4px;gap:4px;margin:6px 0 4px;flex-wrap:wrap}
+  .toggle button{background:transparent;color:var(--muted);border:0;padding:8px 14px;
+    border-radius:7px;cursor:pointer;font-size:13.5px;font-weight:600}
+  .toggle button.active{background:var(--accent);color:#08101f}
+  .count{font-size:12.5px;color:var(--muted);margin:8px 0}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .prog{border-left:4px solid var(--line);position:relative}
+  .prog .badge2{position:absolute;top:12px;right:14px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:20px}
+  .prog .who{font-size:12px;color:var(--accent);font-weight:600;margin-top:2px}
+  .prog .meta{font-size:11.5px;color:var(--muted);margin:6px 0 0}
+  .prog .note{font-size:12.5px;color:var(--muted);margin:8px 0 0;border-top:1px dashed var(--line);padding-top:7px}
+  .prog .nm{font-size:15px;font-weight:700;margin:0;padding-right:64px}
+  .v-ok{border-left-color:var(--ok)} .b-ok{background:var(--okbg);color:var(--ok)}
+  .v-warn{border-left-color:var(--warn)} .b-warn{background:var(--warnbg);color:var(--warn)}
+  .v-info{border-left-color:var(--info)} .b-info{background:var(--infobg);color:var(--info)}
+  .v-no{border-left-color:var(--no);opacity:.6} .b-no{background:var(--nobg);color:var(--no)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:var(--muted);font-weight:600}
+  td.no{color:var(--no)} td.ok{color:var(--ok)} td.warn{color:var(--warn)}
+  tr.v-ok td:first-child{border-left:3px solid var(--ok)}
+  tr.v-warn td:first-child{border-left:3px solid var(--warn)}
+  tr.v-info td:first-child{border-left:3px solid var(--info)}
+  tr.v-no{opacity:.62} tr.v-no td:first-child{border-left:3px solid var(--no)}
+  .badge{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .when{font-weight:700;white-space:nowrap}
+  .nmc{font-weight:600}
+  .notes{color:var(--muted);font-size:11.5px;margin-top:3px}
+  .whos{color:var(--accent);font-size:11.5px}
+  a.link{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--accent);
+    text-decoration:none;font-size:11.5px;padding:4px 9px;border-radius:7px;white-space:nowrap}
+  a.link:hover{border-color:var(--accent)}
+  .stt{font-size:10.5px;margin-top:4px;color:var(--muted)}
+  .st-ok{color:var(--ok)} .st-warn{color:var(--warn)} .st-mut{color:var(--muted)}
+  th.sortable{cursor:pointer;user-select:none} th.sortable:hover{color:var(--accent)} th.sorted{color:var(--accent)}
+  table.cmp td:first-child, table.cmp th:first-child{position:sticky;left:0;background:var(--panel2);font-weight:600;min-width:108px;z-index:1}
+  table.cmp th{background:var(--panel2)} table.cmp td{vertical-align:top;font-size:12.5px}
+  tr.catrow td{background:#202632;color:var(--accent);font-weight:700;font-size:12px;letter-spacing:.5px}
+  .c-ok{color:var(--ok)} .c-warn{color:var(--warn)}
+  .pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:12px;background:var(--panel2);color:var(--muted);margin-left:6px}
+  ul.chk{list-style:none;padding:0;margin:0}
+  ul.chk li{padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+  ul.chk li b{color:var(--txt)}
+  ol.route{padding-left:20px} ol.route li{margin:7px 0}
+  .tag{font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:1px 7px;border-radius:6px;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .hl{color:var(--warn);font-weight:600} .green{color:var(--ok);font-weight:600}
+  .trend{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .trend ol{padding-left:20px;margin:0} .trend li{margin:9px 0}
+  .src{font-size:12px;color:var(--muted)} .src a{color:var(--accent);text-decoration:none}
+  @media(max-width:760px){table.listing th:nth-child(3),table.listing td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>주거지원 대시보드</h1>
+  <p class="sub">A(1주택·연 9천) · B(무주택·연 7천·동생과 동일세대) · 2027년 결혼 예정 · 서울〉인천·경기 · 갱신 2026-06-15</p>
+
+  <!-- 메뉴 탭 -->
+  <div class="tabs" id="tabs">
+    <button data-v="guide" class="active">개요</button>
+    <button data-v="dash">현황</button>
+    <button data-v="list">캘린더</button>
+    <button data-v="cand">SH 행복주택</button>
+    <button data-v="cmp">매물 비교</button>
+  </div>
+
+  <!-- ============ VIEW 1: 현황 ============ -->
+  <div class="view" id="view-dash">
+    <div class="disclaimer">
+      ⚠️ 판정은 공식 포털/공사 기준(2026-06-15)으로 작성한 추정이다. 소득은 <b>연봉/12 환산값</b>으로 계산했고 건강보험 보수월액(공적 확정값)은 미확인이나,
+      대부분은 상한과의 차이가 커서 뒤집힐 가능성이 낮다. 단 행복주택은 B의 세대주 여부와 동생 소득에 따라 판정이 바뀐다. 실제 자격은 신청 회차의 <b>공식 공고문</b>으로 다시 판정한다.<br>
+      소득 기준선: 도시근로자 월평균 100%(2025) 1인 360만·2인 548만 / 기준중위 150%(2026) 1인 385만·2인 630만 / 행복주택 청년 1인 457만.
+    </div>
+
+    <div class="disclaimer">
+      <b>현황</b> — A·B의 현재 상황을 제도별로 대입해 신청 가능·조건부·추가확인·불가를 판정한 페이지. 제도 설명은 개요에서 확인하고, 이 페이지에서는 판정 이유와 신청 주체에 집중한다. 토글로 "1주택 유지 ↔ 매도 후" 전환.
+    </div>
+    <h2>A · B 현황</h2>
+    <div class="grid two">
+      <div class="card person"><h3>A</h3>
+        <ul>
+          <li>생년월일 비공개 (만 36세) · 미혼</li>
+          <li>1주택 보유 (매도 옵션 가능)</li>
+          <li>연봉 9,000만</li>
+          <li>대출 2건: 아파트 주담대 6억 + 오피스텔 전세대출 1억 → <span class="hl">DSR 포화, 신규 여력 0</span></li>
+        </ul>
+      </div>
+      <div class="card person"><h3>B</h3>
+        <ul>
+          <li>생년월일 비공개 (만 26세) · 미혼 → <span style="color:var(--ok)">청년 연령 ✅</span></li>
+          <li>무주택 · 대출 없음 → 신청·대출 주체로 유리</li>
+          <li>연봉 7,000만 → 본인 월소득 단순 환산 약 <span class="hl">583만</span></li>
+          <li>원칙적으로 1인 소득상한 초과. 단 <span class="hl">동생과 2인 세대의 세대주</span>면 행복주택은 합산소득에 따라 가능</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>제도별 자격 판정</h2>
+    <div class="toggle" id="toggle">
+      <button data-mode="current" class="active">현재 (A 1주택 유지)</button>
+      <button data-mode="sold">A 주택 매도 후</button>
+    </div>
+    <div class="count" id="count"></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--ok)"></i>가능</span>
+      <span><i class="dot" style="background:var(--warn)"></i>조건부</span>
+      <span><i class="dot" style="background:var(--info)"></i>추가정보 필요</span>
+      <span><i class="dot" style="background:var(--no)"></i>불가(대부분 소득 초과)</span>
+    </div>
+    <div class="grid cards" id="progGrid"></div>
+
+    <h2>대출·금융</h2>
+    <div class="card" style="margin-bottom:12px">
+      <b>A DSR 분석</b> <span class="pill">가정: 주담대 4%·30년, 전세 4% 이자</span>
+      <table>
+        <tr><th>항목</th><th>연 상환액</th><th>비고</th></tr>
+        <tr><td>소득 9,000만 → 은행 DSR 40% 한도</td><td>3,600만</td><td>연간 원리금 상한</td></tr>
+        <tr><td>아파트 주담대 6억</td><td>약 3,438만</td><td>원리금균등</td></tr>
+        <tr><td>오피스텔 전세대출 1억 이자</td><td>약 400만</td><td>1주택·수도권 → DSR 산입</td></tr>
+        <tr><td><b>기존 합계</b></td><td class="no"><b>약 3,838만</b></td><td class="no">한도 초과 → 신규 여력 0</td></tr>
+      </table>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <b>B 단독 전세대출</b> <span class="pill">무주택 → 전세 DSR 미적용, 보증금 80% 한도</span>
+      <table>
+        <tr><th>시나리오</th><th>보증금</th><th>대출(80%)</th><th>월 이자(4.2% 가정)</th></tr>
+        <tr><td>서울</td><td>6억</td><td>4.8억</td><td class="warn">약 168만 (B 소득대비 부담 큼)</td></tr>
+        <tr><td>수도권</td><td>4억</td><td>3.2억</td><td class="ok">약 112만 (현실적)</td></tr>
+        <tr><td>(출산 후) 신생아 특례 버팀목</td><td>4억</td><td>3억</td><td class="ok">약 50만 (2.0% 가정)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <b>정책대출 가부</b> <span class="pill">B 단독 7천 / 부부 1.6억</span>
+      <table>
+        <tr><th>상품</th><th>소득 상한</th><th>판정</th></tr>
+        <tr><td>청년 버팀목 전세</td><td>단독 5천↓</td><td class="no">❌ B 7천 초과 (연령 만26 ✅이나 소득)</td></tr>
+        <tr><td>신혼 버팀목 전세</td><td>부부 7,500↓</td><td class="no">❌ 초과</td></tr>
+        <tr><td>일반 디딤돌 구입</td><td>부부 8,500↓</td><td class="no">❌ 초과</td></tr>
+        <tr><td>서울시 신혼 임차보증금 이자지원</td><td>부부 1.3억↓</td><td class="no">❌ 초과</td></tr>
+        <tr><td><b>신생아 특례 버팀목/디딤돌</b></td><td><b>부부 2억↓</b></td><td class="warn">🟡 통과 — 단 출산 후 (현재 보류)</td></tr>
+        <tr><td>일반 은행 전세대출</td><td>없음</td><td class="warn">🟡 사실상 유일 (B 명의)</td></tr>
+      </table>
+    </div>
+
+    <h2>우선순위 추천 루트</h2>
+    <div class="card">
+      <b>지금 바로 (A 1주택 유지 · B 단독)</b>
+      <ol class="route">
+        <li><b>공공지원 / 청년안심주택 민간임대 — 일반공급</b> <span class="tag">소득 무관</span> 사실상 유일하게 확실히 열린 공공 연계 경로. 임대료 시세 70~85%.</li>
+        <li><b>SH 행복주택 청년계층</b> <span class="tag warn">세대구성 확인</span> B이 동생과 2인 세대의 세대주이고, 동생 포함 월소득이 약 645만 이하라면 신청 가능. 세대주 여부·동생 소득 확인이 선결.</li>
+        <li><b>든든전세주택</b> <span class="tag">소득·자산 무심사</span> B 단독(무주택)으로. 우선순위 신생아·다자녀에 밀려 배정 대기 가능.</li>
+        <li><b>일반 전세 + B 명의 은행 전세대출</b> <span class="tag">정책금융 불가 대안</span> 수도권 4억이 단독 소득대비 현실적.</li>
+        <li><b>5·10년 분양전환 공공임대</b> <span class="tag">소득무관 · 매입 가능</span> 일반공급은 소득 안 봄(무주택+청약저축+자산). <b>임대 후 분양전환 매입 = 원래 목표</b>. 단 신규공급 드물어 공급 회차를 기다려야 함.</li>
+      </ol>
+      <b>A 매도 후 (둘 다 무주택) — 소득제한 제도는 여전히 막힘</b>
+      <ol class="route">
+        <li><b>일반·민간분양 청약(추첨제 포함)</b> <span class="tag">소득 영향 적음</span> "좋은 아파트 매입" 목표에 가장 부합. 청약통장·가점 준비.</li>
+        <li><b>민간분양 신혼 특별공급</b> <span class="tag">추첨 일부</span> 소득 완화·추첨 물량 노림.</li>
+        <li><b>(출산 후) 신생아 특례 디딤돌 매입</b> <span class="tag">부부 2억↓</span> 주택 9억·85㎡↓. 소득 통과하는 유일 정책금융.</li>
+        <li><b>든든전세</b> <span class="tag">소득무관</span> 부부 무주택으로 신혼 순위.</li>
+      </ol>
+      <p style="color:var(--muted);font-size:12.5px;margin:8px 0 0">
+        ※ 미리내집·신혼 전세임대Ⅱ·신혼 특공(공공분양) 등 소득상한 제도는 부부 합산 1,333만이 상한(최대 ≈1,095만)을 넘어 매도해도 ❌. 매도의 실익은 "무주택 필요한 소득무관 상품 + 일반분양 + 신생아 특례 매입"에 한정.
+      </p>
+    </div>
+
+    <h2>verdict 확정에 필요한 정보 (남은 것)</h2>
+    <ul class="chk">
+      <li><b>B의 주민등록상 세대주 여부</b> — 행복주택에서 본인 1인 기준인지, 동생 포함 2인 기준인지 결정.</li>
+      <li><b>동생의 월소득·무주택 여부</b> — 2인 합산 월소득 약 645만 이하인지 확인.</li>
+      <li><b>건강보험 보수월액</b> (각자) — 연봉/12 추정을 공적값으로 확정. 현재 판정 방향은 바뀔 가능성 낮음.</li>
+      <li><b>A 주택 취득일·보유기간</b> — (소득과 별개로) 5년 무주택 요건 제도 검토용.</li>
+      <li><b>보유 아파트 전세 임대 여부 + 세입자 보증금</b> — 매도 타이밍·양도세.</li>
+      <li><b>기존 주담대 금리·만기</b> — DSR 정밀화 (현재 4%·30년 가정).</li>
+      <li><b>각자 청약통장 가입일·납입회차</b> — 일반·민간분양 청약 자격(매도 후 핵심 경로).</li>
+      <li><b>두 사람 순자산·자동차가액</b> — 신생아 특례 순자산 요건(전세 3.45억/구입 4.88억).</li>
+    </ul>
+  </div>
+
+  <!-- ============ VIEW 2: 2026 공고 캘린더 ============ -->
+  <div class="view" id="view-list">
+    <div class="disclaimer">
+      각 행에 <b>확인 상태</b>를 표시했다(2026-06-15 재검증): <span class="st-ok">✓ 공식 확인</span> / <span class="st-mut">🔎 검색기반·미확정</span> / <span class="st-mut">⌛ 종료</span> / <span class="st-warn">상시(직접조회)</span>.
+      동적 청약사이트는 실시간 단지 목록을 외부에서 확정 추출할 수 없어, ✓ 표시 외 항목은 <b>각 행 공식 링크에서 직접 조회</b>해야 한다.
+      판정 기준: B 1인 월 583만 / 부부 2인 월 1,333만.
+    </div>
+    <div class="toggle" id="filter">
+      <button data-f="all" class="active">전체</button>
+      <button data-f="yes">✅🟡 되는 것</button>
+      <button data-f="no">❌ 안 되는 것</button>
+    </div>
+    <div class="count" id="lcount"></div>
+
+    <h2>① 임대 공고</h2>
+    <table class="listing"><thead><tr><th>시기</th><th>공고/단지</th><th>유형·소득제한</th><th>판정 / 신청주체</th><th>공식 링크</th></tr></thead>
+      <tbody id="rentBody"></tbody></table>
+
+    <h2>② 분양 공고 — 매도 후 무주택 시 핵심 경로</h2>
+    <table class="listing"><thead><tr><th>시기</th><th>단지/공고</th><th>유형·소득제한</th><th>판정 / 신청주체</th><th>공식 링크</th></tr></thead>
+      <tbody id="saleBody"></tbody></table>
+
+    <h2>③ 추이 분석 (요즘 흐름)</h2>
+    <div class="trend">
+      <ol>
+        <li><b>임대 소득문턱은 그대로 높다.</b> 공공임대 청년/신혼 상한(1인 385~457만, 2인 ~1,095만)이 유지돼 두 사람(583/1,333만)은 대부분 ❌. 임대에서 들어갈 틈은 <span class="green">소득 안 보는 민간임대 일반공급 + 든든전세</span>뿐.</li>
+        <li><b>든든전세는 공급되지만 경쟁이 치열.</b> 5월 수도권 1,253호 공고는 <span class="hl">서울 평균 315:1로 이미 마감</span>. 소득·자산 무심사라 수요가 몰린다. 다음은 하반기 추가 500호. 배점제(신생아·다자녀·신혼 우선)라 단독·무자녀는 더 불리.</li>
+        <li><b>분양 물량이 급증.</b> <span class="hl">2026 수도권 공공분양 2.9만호 — 평년의 2.4배</span>. 서울 민간분양도 방배·반포·목동·장위 등 대단지 다수.</li>
+        <li><b>시사점:</b> 무게중심은 "공공임대 입주"가 아니라 <span class="green">① 지금 소득무관 임대로 거주 안정 → ② 분양 늘어나는 흐름에 맞춰 매도·무주택 전환 후 청약/매입</span>. 임대는 소득 때문에 막혔지만 분양은 오히려 열리는 해.</li>
+      </ol>
+    </div>
+
+    <h2>출처</h2>
+    <p class="src">
+      <a href="https://www.i-sh.co.kr/app/lay2/program/S48T1581C563/www/brd/m_247/list.do?multi_itm_seq=2" target="_blank">SH 인터넷청약</a> ·
+      <a href="https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008" target="_blank">청년안심주택 공고</a> ·
+      <a href="https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancList.do?mi=1026" target="_blank">LH청약플러스 공고문</a> ·
+      <a href="https://apply.lh.or.kr/lhapply/apply/sc/list.do?mi=1312" target="_blank">LH 청약캘린더</a> ·
+      <a href="https://www.gh.or.kr/gh/announcement-of-salerental001.do" target="_blank">GH 공고</a> ·
+      <a href="https://www.ih.co.kr/main/sale_lease/notice.jsp" target="_blank">iH 공고</a> ·
+      <a href="https://xn--vg1bl39d.kr/supplyPlan/schedule.do" target="_blank">뉴홈 일정</a> ·
+      <a href="https://www.applyhome.co.kr/" target="_blank">청약홈</a>
+    </p>
+  </div>
+
+  <!-- ============ VIEW: 청년 청약후보 ============ -->
+  <div class="view" id="view-cand">
+    <div class="disclaimer">
+      2026년 1차 행복주택(2026.05.28 공고)의 <b>청년계층</b> 단지. 공급은 <b>우선공급 / 일반공급 / 예비입주자</b> 3유형(단지 풀이 서로 다름).
+      ⚠️ 행복주택 청년 소득상한: <b>1인 457만 / 2인 645만(110%)</b>. B이 동생과 <b>2인 세대의 세대주</b>면 2인 기준 적용 → B583+동생 합산이 645만 이하면 ✅ 가능(동생 저소득 시). B이 세대원이면 1인 457만<583만 ❌. → <b>세대주 여부·동생 소득 확인이 관건</b>. 위 버튼으로 유형 필터, 헤더 클릭으로 정렬.
+    </div>
+    <p style="margin:0 0 10px"><a class="link" href="https://www.i-sh.co.kr/app/lay2/program/S48T1594C624/m_66/appNoti/appNotiUser_hsCheck.do?type=1" target="_blank">2026년 1차 행복주택 공고 ↗</a></p>
+    <div class="toggle" id="candFilter">
+      <button data-f="all" class="active">전체</button>
+      <button data-f="우선공급">우선공급</button>
+      <button data-f="일반공급">일반공급</button>
+      <button data-f="예비입주자">예비입주자</button>
+    </div>
+    <div class="count" id="candCount"></div>
+    <table>
+      <thead><tr>
+        <th class="sortable" data-k="nm">단지명 ⇅</th>
+        <th class="sortable" data-k="area">전용㎡ ⇅</th>
+        <th class="sortable" data-k="type">공급유형 ⇅</th>
+        <th class="sortable" data-k="ho">호수 ⇅</th>
+      </tr></thead>
+      <tbody id="candBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ============ VIEW: 매물 비교 ============ -->
+  <div class="view" id="view-cmp">
+    <div class="disclaimer">
+      <b>매물 비교</b> — 분양·임대 의사결정 항목을 한 화면에. <span class="c-ok">초록=유리</span> / <span class="c-warn">주황=주의</span>. 새 매물은 광고문을 주면 컬럼으로 추가.
+      ⚠️ 분양가는 <b>반드시 인근 실거래·전세 시세와 대조</b>(준공 후 분양은 마피·역전세 위험). 오피스텔은 청약 무주택엔 안 잡히지만 <b>주거용이면 세금상 주택수에 포함</b>.
+    </div>
+    <div class="toggle" id="cmpCols" style="margin-bottom:6px;flex-wrap:wrap"></div>
+    <p class="notes" style="margin:0 0 8px">↑ 매물 버튼으로 컬럼 표시/숨김 · <b>카테고리 줄(▼)을 클릭하면 접기/펴기</b></p>
+    <div style="overflow-x:auto"><table class="cmp" id="cmpTable"></table></div>
+  </div>
+
+  <!-- ============ VIEW: 개요 (제도·기준 사전) ============ -->
+  <div class="view active" id="view-guide">
+    <div class="disclaimer">
+      <b>개요</b> — 개인 조건을 대입하지 않고, 공공임대·민간임대·분양·금융지원의 구조와 제도별 주요 기준을 정리한 페이지.
+      수치는 2026-06-15 기준 공식 안내와 공고문을 바탕으로 한 참고값이며, 실제 신청에는 해당 회차 공고문이 우선한다.
+    </div>
+
+    <h2>① 공급유형과 선정 방식</h2>
+    <div class="grid two">
+      <div class="card"><b>특별공급</b><div class="notes" style="font-size:13px">신혼부부·생애최초·미혼청년·다자녀·노부모부양·기관추천 등 정책 대상에게 별도 물량을 배정한다. 보통 <b>무주택, 소득, 자산, 청약통장</b>을 함께 본다.</div></div>
+      <div class="card"><b>일반공급</b><div class="notes" style="font-size:13px">특별공급 외 물량을 청약통장, 거주지역, 무주택기간, 납입횟수 또는 예치금으로 선정한다. 민영주택은 가점제와 추첨제를 병행한다.</div></div>
+      <div class="card"><b>우선공급·순위</b><div class="notes" style="font-size:13px">같은 자격계층 안에서 거주지, 소득구간, 자녀수, 청약저축, 취약계층 여부 등으로 먼저 배정한다. 자격 충족과 당첨 순위는 별개다.</div></div>
+      <div class="card"><b>잔여·임의·재공급</b><div class="notes" style="font-size:13px">미계약 또는 취소 물량을 다시 공급한다. 무순위·선착순이라도 무주택, 지역, 재당첨 제한 등은 공고마다 다르다.</div></div>
+    </div>
+
+    <h2>② 자격 판정의 공통 기준</h2>
+    <table>
+      <tr><th>기준</th><th>무엇을 확인하나</th><th>주의할 점</th></tr>
+      <tr><td><b>무주택 범위</b></td><td>신청자 본인만 보는지, 배우자·직계존비속을 포함한 무주택세대구성원 전원을 보는지 확인</td><td>예비신혼은 입주 전 구성될 세대를 보며, 일부 제도는 최근 5년 보유 이력까지 확인</td></tr>
+      <tr><td><b>가구원수·세대주</b></td><td>신청자가 세대주인지 세대원인지에 따라 소득·자산 합산 대상과 가구원수가 달라질 수 있음</td><td>청년계층은 본인만 검증하는 경우와 세대 전체를 검증하는 경우가 제도별로 다름</td></tr>
+      <tr><td><b>소득</b></td><td>도시근로자 월평균소득 또는 기준중위소득의 일정 비율을 적용</td><td>세후 실수령액이 아니라 사회보장정보시스템의 근로·사업·재산·이전소득 등 공적자료 사용</td></tr>
+      <tr><td><b>자산·자동차</b></td><td>부동산, 금융자산, 임차보증금, 보험, 자동차 등을 합산해 상한 적용</td><td>주택 매도대금도 금융자산으로 남으면 자산심사에 포함될 수 있음</td></tr>
+      <tr><td><b>청약통장</b></td><td>가입기간, 납입인정횟수, 지역·면적별 예치금 확인</td><td>임대는 입주 전 가입만 요구하기도 하고, 분양은 순위와 당첨자 선정에 직접 반영</td></tr>
+      <tr><td><b>지역·기준일</b></td><td>공고일 현재 거주지, 근무지, 해당지역 연속거주기간 확인</td><td>연령·혼인·주택·소득 판정 기준일이 접수일이 아니라 공고일인 경우가 많음</td></tr>
+    </table>
+
+    <h2>③ 주요 임대제도 기준</h2>
+    <table>
+      <tr><th>제도</th><th>대상·무주택</th><th>소득·자산</th><th>거주기간·분양전환</th></tr>
+      <tr><td><b>통합공공임대</b></td><td>청년·신혼·고령자 등 무주택세대구성원</td><td>일반공급 중위소득 150% 중심, 가구원수·계층별 가산율 적용. 총자산·자동차 상한</td><td>최장 30년 · 분양전환 없음</td></tr>
+      <tr><td><b>행복주택</b></td><td>만 19~39세 미혼청년, 대학생, 신혼부부 등. 계층별 무주택 범위 상이</td><td>도시근로자 소득 기준. 청년은 본인 또는 세대구성에 따라 검증범위가 달라짐. 청년 자산상한 별도</td><td>2년 단위, 청년 최대 10년 · 분양전환 없음</td></tr>
+      <tr><td><b>국민·영구임대</b></td><td>무주택 저소득가구, 수급자·차상위·취약계층 우선</td><td>도시근로자 약 70% 이하 중심. 낮은 자산·자동차 상한 적용</td><td>국민임대 최장 30년, 영구임대 장기 · 분양전환 없음</td></tr>
+      <tr><td><b>청년·신혼 매입임대</b></td><td>LH·SH 등이 매입한 주택을 청년·신혼 계층에 공급</td><td>청년은 본인 100% 이하 중심, 신혼은 유형별 70~100% 이상. 자산기준 적용</td><td>시세 약 30~50%, 유형별 최장 10~20년 · 분양전환 없음</td></tr>
+      <tr><td><b>전세임대</b></td><td>입주자가 찾은 주택을 공사가 임차한 뒤 재임대</td><td>청년·신혼 유형별 소득·자산·순위 적용. 지원한도 초과분은 입주자 부담</td><td>유형별 최장 10~20년 · 주택을 소유하게 되는 제도 아님</td></tr>
+      <tr><td><b>장기전세·미리내집</b></td><td>서울 무주택가구·신혼부부 중심. 미리내집은 혼인기간과 무주택 이력 요건</td><td>면적·공급유형별 도시근로자 소득 및 자산기준</td><td>최장 20년 · 전세형 · 일반적으로 분양전환 없음</td></tr>
+      <tr><td><b>든든전세</b></td><td>무주택세대구성원. 신생아·다자녀·신혼 등에 배점 또는 우선순위</td><td>소득·자산을 심사하지 않는 유형. 보증금은 시세 90% 이하 수준</td><td>최장 8년 · 분양전환 없음</td></tr>
+      <tr><td><b>5·10년 공공임대</b></td><td>무주택세대구성원 + 청약저축. 공급유형별 순위 적용</td><td>일반공급은 소득기준이 없을 수 있으나 부동산·자동차 등 자산기준 적용</td><td>5년 또는 10년 임대 후 분양전환. 가격 산정방식은 공고 확인</td></tr>
+    </table>
+
+    <h2>④ 민간임대·분양·금융지원 기준</h2>
+    <table>
+      <tr><th>제도</th><th>핵심 자격</th><th>선정·비용</th><th>주요 제한</th></tr>
+      <tr><td><b>청년안심주택 민간임대</b></td><td>특별공급은 청년·신혼 소득·자산기준, 일반공급은 소득기준을 두지 않는 공고가 많음</td><td>일반공급은 추첨 중심, 임대료는 대체로 시세 70~85%</td><td>단지별 자격·보증금·갱신조건 차이, 분양전환 없음</td></tr>
+      <tr><td><b>공공지원 민간임대</b></td><td>특별공급과 일반공급 분리. 일반공급은 소득·자산 제한이 없는 유형 다수</td><td>청약홈 공고별 추첨, 시세 대비 임대료 제한</td><td>공공임대보다 임대료가 높고 의무임대기간 종료 후 조건 확인 필요</td></tr>
+      <tr><td><b>민영주택 일반공급</b></td><td>수도권 청약통장 가입기간·지역별 예치금·거주지역 요건</td><td>1순위 경쟁 시 가점제와 추첨제. 가점은 무주택기간 32 + 부양가족 35 + 통장기간 17</td><td>규제지역·면적별 가점/추첨 비율과 1주택자 제한이 달라짐</td></tr>
+      <tr><td><b>공공분양 일반공급</b></td><td>무주택세대구성원 + 청약저축. 납입횟수·총액과 거주지역 기준</td><td>순차제·추첨 등 유형별 선정</td><td>뉴홈 나눔형·선택형·일반형마다 소득·자산·환매조건 차이</td></tr>
+      <tr><td><b>신혼부부 특별공급</b></td><td>혼인 7년 이내 또는 예비신혼, 세대 전원 무주택, 청약통장 요건</td><td>우선·일반·추첨 구간별 소득기준. 민영과 공공의 기준이 다름</td><td>혼인·자녀·소득·자산 기준일과 기존주택 처분조건 확인</td></tr>
+      <tr><td><b>생애최초·미혼청년 특공</b></td><td>생애최초는 세대의 주택소유 이력, 미혼청년은 연령·미혼·본인 주택이력 확인</td><td>소득·자산 구간과 추첨 물량 적용</td><td>1인가구 면적 제한, 부모자산 기준 등 세부조건 존재</td></tr>
+      <tr><td><b>정책 전세·구입대출</b></td><td>버팀목·디딤돌·신혼·신생아 특례별 무주택·소득·순자산 요건</td><td>상품별 보증금·주택가격·면적·대출한도·우대금리 적용</td><td>기존 대출 DSR, 출산 기준일, 주택 처분조건을 별도로 확인</td></tr>
+    </table>
+
+    <h2>⑤ 전국 공통 기준과 지역별 제도</h2>
+    <div class="grid two">
+      <div class="card"><b>전국 공통</b><div class="notes" style="font-size:13px">주택공급규칙·공공주택특별법·주택도시기금 기준에 따라 연령, 무주택, 소득비율, 자산상한, 특별공급 구조가 정해진다.</div></div>
+      <div class="card"><b>기관·지자체 재량</b><div class="notes" style="font-size:13px">지역 우선공급, 거주기간, 단지별 임대료, 가점, 추가 지원, 민간임대 일반공급 조건은 기관과 공고마다 달라진다.</div></div>
+    </div>
+
+    <table>
+      <tr><th>주체</th><th>주요 제도</th><th>확인 포인트</th></tr>
+      <tr><td><b>전국</b><br>LH·국토부·HUG</td><td>통합공공임대 · 국민/영구/행복/매입/전세임대 · 든든전세 · 분양전환 공공임대 · 뉴홈 · 정책대출</td><td>공통 자격과 지역별 모집물량, LH청약플러스·마이홈·뉴홈 공고 확인</td></tr>
+      <tr><td><b>서울</b><br>SH·서울시</td><td>장기전세 · 미리내집 · 청년안심주택 · 매입임대 · 공공분양 · 임차보증금 이자지원</td><td>서울 거주기간, 자치구 우선, SH와 청년안심주택 플랫폼의 별도 공고 확인</td></tr>
+      <tr><td><b>경기</b><br>GH·시군</td><td>경기행복주택 · 매입/전세임대 · 공공분양 · 청년 월세·이자지원</td><td>경기도 전체 기준과 시군별 거주·근무 우선조건을 함께 확인</td></tr>
+      <tr><td><b>인천</b><br>iH·인천시</td><td>천원주택 · 매입임대 · 든든전세 · 공공분양 · i+집드림</td><td>인천 거주·재직 요건, 신혼·신생아 계층 및 공급지역 확인</td></tr>
+    </table>
+
+    <h2>⑥ 공고문 판독 순서</h2>
+    <ul class="chk">
+      <li><b>① 기준일과 공급대상</b> — 공고일, 입주자모집 유형, 청년·신혼·일반 등 신청계층 확인</li>
+      <li><b>② 무주택 검증범위</b> — 신청자 본인, 세대구성원, 예비배우자, 과거 보유이력 중 어디까지 보는지 확인</li>
+      <li><b>③ 소득·자산 산식</b> — 가구원수, 맞벌이 가산율, 공적소득, 총자산·자동차 상한 확인</li>
+      <li><b>④ 순위와 배점</b> — 거주지, 자녀수, 청약저축, 소득구간, 취약계층 우선 여부 확인</li>
+      <li><b>⑤ 비용과 계약</b> — 보증금·임대료, 최대 거주기간, 갱신 시 할증, 분양전환 여부 확인</li>
+      <li><b>⑥ 일정</b> — 접수, 서류제출, 당첨발표, 계약, 실제 입주 가능시점 구분</li>
+    </ul>
+
+    <h2>⑦ 어디서 확인하나 — 공식 창구 모음</h2>
+    <p class="notes">공식 도메인만 정리. 개별 공고 deep-link(pblancId 등)는 시점에 따라 만료되니, 아래 메인 경로에서 최신 공고를 직접 조회하는 게 안전.</p>
+    <div class="grid cards">
+      <div class="card prog v-ok">
+        <span class="badge2 b-ok">전국 임대</span>
+        <p class="nm">LH 청약플러스 — 임대주택</p>
+        <div class="note">전국 청년 전세임대·매입임대 공고 조회·온라인 청약. 회원가입 후 공고문에서 자격·소득%·자산상한 확인.</div>
+        <a class="link" href="https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancList.do?mi=1026" target="_blank" style="margin-top:8px">apply.lh.or.kr ↗</a>
+      </div>
+      <div class="card prog v-ok">
+        <span class="badge2 b-ok">서울 지원</span>
+        <p class="nm">서울주거포털 — 청년·신혼부부 지원</p>
+        <div class="note">서울 청년 임대·임차보증금 이자지원·전월세 대출 허브. 제도별 안내 + 단지 링크.</div>
+        <a class="link" href="https://housing.seoul.go.kr" target="_blank" style="margin-top:8px">housing.seoul.go.kr ↗</a>
+      </div>
+      <div class="card prog v-ok">
+        <span class="badge2 b-ok">서울 청년</span>
+        <p class="nm">청년안심주택 플랫폼</p>
+        <div class="note">서울 역세권 청년주택 단지·공고. 일부 단지는 소득·자산 완화/무제한 — 단지별로 다름.</div>
+        <a class="link" href="https://soco.seoul.go.kr/youth/main/main.do" target="_blank" style="margin-top:8px">soco.seoul.go.kr ↗</a>
+      </div>
+      <div class="card prog v-warn">
+        <span class="badge2 b-warn">공통</span>
+        <p class="nm">청약홈</p>
+        <div class="note">아파트 분양 청약 + 공공지원 민간임대 일반공급. 청약캘린더에서 지역·유형별 일정 조회.</div>
+        <a class="link" href="https://www.applyhome.co.kr" target="_blank" style="margin-top:8px">applyhome.co.kr ↗</a>
+      </div>
+      <div class="card prog v-warn">
+        <span class="badge2 b-warn">공통</span>
+        <p class="nm">마이홈포털</p>
+        <div class="note">전국 모든 공공주택 제도 안내 + 입주자 모집공고 통합검색. 제도 개념 학습에도 유용.</div>
+        <a class="link" href="https://www.myhome.go.kr" target="_blank" style="margin-top:8px">myhome.go.kr ↗</a>
+      </div>
+      <div class="card prog v-warn">
+        <span class="badge2 b-warn">공통</span>
+        <p class="nm">SH 인터넷청약</p>
+        <div class="note">서울 매입임대·장기전세·미리내집·공공분양. (앞 캘린더의 SH 매입임대 50건이 여기)</div>
+        <a class="link" href="https://www.i-sh.co.kr" target="_blank" style="margin-top:8px">i-sh.co.kr ↗</a>
+      </div>
+      <div class="card prog v-warn">
+        <span class="badge2 b-warn">경기·인천</span>
+        <p class="nm">GH · iH 청약</p>
+        <div class="note">경기(GH)·인천(iH) 임대·분양 공고. 서울이 안 될 때 접근성 좋은 경기·인천 대안.</div>
+        <a class="link" href="https://apply.gh.or.kr" target="_blank" style="margin-top:8px">apply.gh.or.kr ↗</a>
+        <a class="link" href="https://www.ih.co.kr" target="_blank" style="margin-top:8px;margin-left:6px">ih.co.kr ↗</a>
+      </div>
+      <div class="card prog v-info">
+        <span class="badge2 b-info">공공분양</span>
+        <p class="nm">뉴:홈 (공공분양)</p>
+        <div class="note">공공분양 유형별 자격, 공급계획, 사전청약·본청약 일정을 확인하는 공식 창구.</div>
+        <a class="link" href="https://xn--vg1bl39d.kr" target="_blank" style="margin-top:8px">newhome.go.kr ↗</a>
+      </div>
+      <div class="card prog">
+        <span class="badge2" style="background:var(--panel2);color:var(--muted)">학습용</span>
+        <p class="nm">찾기쉬운 생활법령 — 청년 주거지원</p>
+        <div class="note">청년 공공임대·전세임대·행복주택·월세지원 제도 구조를 한 번에 읽기. 공고 보기 전 개념 정리용.</div>
+        <a class="link" href="https://easylaw.go.kr/CSP/CnpClsMain.laf?csmSeq=1658&ccfNo=2&cciNo=2&cnpClsNo=2" target="_blank" style="margin-top:8px">easylaw.go.kr ↗</a>
+      </div>
+    </div>
+    <p class="notes" style="margin-top:12px">개별 제도의 일반 기준보다 <b>신청하려는 회차의 입주자모집공고문</b>이 우선한다. 포털 요약만 보고 신청 여부를 확정하지 않는다.</p>
+  </div>
+
+</div>
+
+<script>
+/* ===== 탭 전환 ===== */
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+b.dataset.v).classList.add('active');
+}));
+
+/* ===== VIEW 1: 제도 판정 ===== */
+const programs = [
+  {nm:"공공지원 민간임대 (일반공급)", ag:"국토부·민간", ty:"임대·전국", lease:"최장 8~10년 · 전환❌",
+    current:{v:"ok",who:"B 단독",note:"일반공급은 소득기준 미적용. 무주택 요건도 일반공급은 미적용 다수. 가장 현실적."},
+    sold:{v:"ok",who:"B 또는 부부",note:"매도 여부와 무관하게 일반공급은 열려 있음."}},
+  {nm:"청년안심주택 민간임대 (일반공급)", ag:"서울시·민간", ty:"임대·서울", lease:"최장 8년 · 전환❌",
+    current:{v:"ok",who:"B 단독",note:"일반공급(약 80%) 소득 무관. 서울 입지 양호 단지 다수. 임대료 시세 70~85%."},
+    sold:{v:"ok",who:"B 또는 부부",note:"동일하게 일반공급 가능."}},
+  {nm:"든든전세주택", ag:"LH·HUG·iH", ty:"전세형·수도권", lease:"최장 8년 · 전환❌",
+    current:{v:"warn",who:"B 단독(무주택)",note:"소득·자산 무심사, 무주택만 필요. 우선순위 신생아·다자녀 > 신혼 → 배정 대기 가능."},
+    sold:{v:"warn",who:"예비신혼·신혼",note:"부부 무주택으로 신혼 순위 신청. 소득무관이라 매도 후에도 유효."}},
+  {nm:"일반·민간분양 청약 (추첨 포함)", ag:"LH·SH·민간", ty:"분양 (소유)", lease:"분양 ⭕",
+    current:{v:"info",who:"B 단독(1주택자 가점 불리)",note:"A 1주택이면 가점·일부 특공 제약. 추첨제는 도전 가능 — 청약통장 확인 필요."},
+    sold:{v:"warn",who:"부부(무주택)",note:"매도 후 무주택 가점 회복. '좋은 아파트 매입' 목표에 가장 부합. 자금은 신생아 특례(출산 후)·일반 주담대."}},
+  {nm:"신혼부부 특별공급 (민간분양)", ag:"민간", ty:"분양 (소유)", lease:"분양 ⭕",
+    current:{v:"no",who:"—",note:"A 1주택 → 무주택 위배(처분조건부 일부 가능하나 제약)."},
+    sold:{v:"warn",who:"부부",note:"소득 완화(130~160%)·추첨 물량 존재 → 일부 도전 가능. 공고별 확인."}},
+  {nm:"신생아 특례 디딤돌 (매입)", ag:"주택도시기금", ty:"구입자금대출", lease:"주택 9억·85㎡↓",
+    current:{v:"no",who:"—",note:"출산 전 + 1주택 → 대상 아님."},
+    sold:{v:"info",who:"부부(출산 후)",note:"부부 2억↓ → 소득 통과하는 유일 정책금융. 단 2년 내 출산 조건. 현재 보류."}},
+  {nm:"통합공공임대", ag:"LH·SH", ty:"우선/일반·전국", lease:"최장 30년 · 전환❌",
+    current:{v:"no",who:"—",note:"일반공급 청년 1인 170%(436만) < B 583만 → 초과. (가산율 적용 공식값)"},
+    sold:{v:"no",who:"—",note:"신혼 일반공급 2인 맞벌이 190%(798만) < 부부 1,333만 → 초과."}},
+  {nm:"행복주택", ag:"SH·LH·GH·iH", ty:"임대·수도권", lease:"최장 6~10년 · 전환❌",
+    current:{v:"info",who:"B(동생과 2인 세대)",note:"★세대 구성이 변수! B이 동생과 2인 세대의 세대주면 가구원수 2인 → 소득상한 6,452,897원(2인 110%), B583+동생 합산 검증. 동생 저소득/무소득이면 ✅ 가능. 단 B이 세대원이면 본인 1인(457만) < 583만 → ❌. 확인: 세대주 여부 + 동생 소득·무주택.",badge:"세대구성 변수"},
+    sold:{v:"no",who:"—",note:"예비신혼 맞벌이 상한 763만 < 부부 1,333만 → 초과."}},
+  {nm:"청년안심주택 공공임대", ag:"서울시·SH", ty:"임대·서울", lease:"최장 6~10년 · 전환❌",
+    current:{v:"no",who:"—",note:"청년 120%(1인 432만) < 583만 → 초과."},
+    sold:{v:"no",who:"—",note:"부부 합산 초과."}},
+  {nm:"매입임대 (청년/신혼)", ag:"LH·SH·iH", ty:"임대·전국", lease:"청년 최장 10년 · 전환❌",
+    current:{v:"no",who:"—",note:"청년 100%(1인 360만) < 583만 → 초과."},
+    sold:{v:"no",who:"—",note:"신혼 70~100% < 부부 합산 → 초과."}},
+  {nm:"신혼 전세임대Ⅱ", ag:"LH·iH", ty:"보증금지원·전국", lease:"최장 20년 · 전환❌",
+    current:{v:"no",who:"—",note:"A 1주택 → 무주택 위배."},
+    sold:{v:"no",who:"—",note:"맞벌이 200%(2인 ≈1,095만) < 부부 1,333만 → 초과. 가장 관대한 상한도 넘음."}},
+  {nm:"장기전세Ⅱ 미리내집", ag:"SH", ty:"임대·서울", lease:"최장 20년 · 전환❌",
+    current:{v:"no",who:"—",note:"A 1주택 → 불가."},
+    sold:{v:"no",who:"—",note:"맞벌이 180%(≈986만) < 1,333만 초과 + 부부 5년 무주택 요건. 이중 차단."}},
+  {nm:"신혼부부 특별공급 (공공분양/뉴홈)", ag:"LH·SH", ty:"분양 (소유)", lease:"분양 ⭕",
+    current:{v:"no",who:"—",note:"A 1주택 → 무주택 위배."},
+    sold:{v:"no",who:"—",note:"우선 맞벌이 120%(657만) < 1,333만 → 초과. 추첨·일반공급은 별도 검토."}},
+  {nm:"장기전세 (SH 시프트)", ag:"SH", ty:"임대·서울", lease:"최장 20년 · 전환❌",
+    current:{v:"no",who:"—",note:"A 1주택 + 소득 초과."},
+    sold:{v:"no",who:"—",note:"150%↓ 상한 < 부부 합산 → 초과."}},
+  {nm:"5·10년 공공임대 (분양전환)", ag:"LH·SH", ty:"임대후 분양전환 ⭕", lease:"5/10년 후 전환",
+    current:{v:"warn",who:"B 단독",note:"★일반공급 소득기준 없음! 무주택+청약저축+자산만(5·10년 부동산 2.155억·차 4,542만 / 6년 총자산 3.62억). B 단독 충족 가능 → 임대 후 분양전환 매입(원래 목표 부합). 단 신규공급 드묾."},
+    sold:{v:"warn",who:"부부 무주택",note:"매도 후 부부 무주택+청약저축으로 가능. 소득 무관이라 두 사람에게 열리는 핵심 경로. 공급 회차만 잡으면 됨."}},
+  {nm:"국민임대", ag:"LH·SH", ty:"임대·전국", lease:"최장 30년 · 전환❌",
+    current:{v:"no",who:"—",note:"도시근로자 70%↓ 저소득 → 초과."},
+    sold:{v:"no",who:"—",note:"소득 초과."}},
+  {nm:"영구임대", ag:"LH·SH", ty:"임대·전국", lease:"장기 · 전환❌",
+    current:{v:"no",who:"—",note:"수급·저소득 우선 → 대상 아님."},
+    sold:{v:"no",who:"—",note:"대상 아님."}},
+  {nm:"전세임대Ⅰ (신혼)", ag:"LH·iH", ty:"보증금지원·전국", lease:"최장 20년 · 전환❌",
+    current:{v:"no",who:"—",note:"도시근로자 70%(맞벌이 90%)↓ → 초과."},
+    sold:{v:"no",who:"—",note:"저소득 기준 → 초과."}},
+  {nm:"50년 공공임대", ag:"LH·SH", ty:"임대·전국", lease:"장기 · 전환❌",
+    current:{v:"no",who:"—",note:"신규 공급 거의 없음."},
+    sold:{v:"no",who:"—",note:"신규 공급 거의 없음."}},
+  {nm:"주거복지동주택", ag:"지자체·SH", ty:"임대·서울", lease:"회차별",
+    current:{v:"no",who:"—",note:"저소득·취약계층 우선 → 대상 아님."},
+    sold:{v:"no",who:"—",note:"대상 아님."}},
+  {nm:"공공기숙사", ag:"지자체", ty:"임대·지역", lease:"단기 · 전환❌",
+    current:{v:"no",who:"—",note:"재학·특정 청년 한정 다수 → 대상 아님."},
+    sold:{v:"no",who:"—",note:"대상 아님."}},
+];
+const order={ok:0,warn:1,info:2,no:3}, vlabel={ok:"가능",warn:"조건부",info:"추가정보",no:"불가"}, vsym={ok:"✅",warn:"🟡",info:"❓",no:"❌"};
+function renderProg(mode){
+  const items=programs.map(p=>({p,s:p[mode]})).sort((a,b)=>order[a.s.v]-order[b.s.v]);
+  const c={ok:0,warn:0,info:0,no:0}; items.forEach(({s})=>c[s.v]++);
+  document.getElementById('count').textContent=`총 ${items.length}개 · ✅ ${c.ok} · 🟡 ${c.warn} · ❓ ${c.info} · ❌ ${c.no}`;
+  document.getElementById('progGrid').innerHTML=items.map(({p,s})=>`
+    <div class="card prog v-${s.v}">
+      <span class="badge2 b-${s.v}">${vsym[s.v]} ${vlabel[s.v]}</span>
+      <p class="nm">${p.nm}${p.current.badge?` <span class="tag">${p.current.badge}</span>`:''}</p>
+      <div class="who">${s.who}</div>
+      <div class="meta">${p.ag} · ${p.ty} · ${p.lease}</div>
+      <div class="note">${s.note}</div>
+    </div>`).join('');
+}
+document.querySelectorAll('#toggle button').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('#toggle button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderProg(btn.dataset.mode);
+}));
+renderProg('current');
+
+/* ===== VIEW 2: 공고 캘린더 ===== */
+const LINK={
+  sh:["https://www.i-sh.co.kr/app/lay2/program/S48T1581C563/www/brd/m_247/list.do?multi_itm_seq=2","SH 청약"],
+  soco:["https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008","청년안심"],
+  lh:["https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancList.do?mi=1026","LH 공고문"],
+  lhcal:["https://apply.lh.or.kr/lhapply/apply/sc/list.do?mi=1312","LH 캘린더"],
+  gh:["https://www.gh.or.kr/gh/announcement-of-salerental001.do","GH 공고"],
+  ih:["https://www.ih.co.kr/main/sale_lease/notice.jsp","iH 공고"],
+  miri:["https://www.i-sh.co.kr/app/lay2/S48T586C6792/sublink.do","미리내집"],
+  newhome:["https://xn--vg1bl39d.kr/supplyPlan/schedule.do","뉴홈 일정"],
+  apply:["https://www.applyhome.co.kr/","청약홈"],
+};
+const rent=[
+  {v:"warn",st:"🔎 공급 회차 확인 필요",stc:"st-warn",when:"수시",nm:"5·10년 분양전환 공공임대",sub:"★일반공급 소득기준 없음(무주택+청약저축+자산: 부동산2.155억/총자산3.62억) · 임대 후 분양전환 매입 = 원래 목표 · 단 신규공급 드묾",ty:"분양전환임대 · 소득 없음",who:"B 단독 / 매도후 부부",lk:"lh"},
+  {v:"ok",st:"상시 · 접수단지 직접조회",stc:"st-warn",when:"상시",nm:"청년안심 민간임대 일반공급",sub:"현재 접수단지는 soco·청약홈에서 실시간 조회 필요(단지명 미확정)",ty:"민간임대 일반공급 · 소득 없음",who:"B 단독",lk:"soco"},
+  {v:"ok",st:"상시 · 청약캘린더 조회",stc:"st-warn",when:"상시",nm:"공공지원 민간임대 일반공급",sub:"청약홈 청약캘린더에서 서울·경기 지역별 조회",ty:"민간임대 일반공급 · 소득 없음",who:"B 단독",lk:"apply"},
+  {v:"info",st:"⌛ 종료(확인)",stc:"st-mut",when:"5월 마감",nm:"든든전세 수도권 1,253호",sub:"공고 5/21~28 마감 · 서울 평균 315:1 · 하반기 추가 500호 예정",ty:"전세형 · 소득 없음",who:"종료 — 하반기 회차 대기",lk:"lh"},
+  {v:"no",st:"✓ 공고중(사용자 확인)",stc:"st-ok",when:"~6/24",nm:"든든전세 현재 공고중",sub:"전북 군산·경남(분양전환/비분양전환형) — 수도권 아님",ty:"전세형 · 지방",who:"지역 불일치",lk:"lh"},
+  {v:"info",st:"✓ 접수중 · 세대구성 변수",stc:"st-ok",when:"6/15~17",nm:"SH 2026년 1차 행복주택",sub:"5/28 공고 · 접수 6/15~17 · 청년계층 우선69+일반76+예비147=292호 → '청년 청약후보' 탭. 청년 소득상한 1인457/2인645만 — B이 동생과 2인 세대주면 가능성(동생 저소득 시)",ty:"공공임대 · 청년 소득상한",who:"B(세대주+동생소득 확인)",lk:"sh"},
+  {v:"no",st:"✓ 모집중(GH 확인)",stc:"st-ok",when:"6/30~7/3",nm:"GH 26년 매입임대 (자격완화)",sub:"소득·자산 무관이나 대상=수급·한부모·장애·고령 등 취약계층",ty:"공공임대 · 취약계층",who:"대상 아님",lk:"gh"},
+  {v:"no",st:"🔎 검색기반(미확정)",stc:"st-mut",when:"상시",nm:"LH 신혼·신생아 전세임대Ⅰ",sub:"수시모집 · 수도권 보증금 1.45억",ty:"보증금지원 · 70~90%↓",who:"소득 초과",lk:"lh"},
+  {v:"no",st:"🔎 검색기반(미확정)",stc:"st-mut",when:"4/30 공고",nm:"iH 청년 매입임대 340호",sub:"시세 30% · 예비입주자",ty:"공공임대 · 청년 소득",who:"소득 초과 가능",lk:"ih"},
+  {v:"no",st:"⌛ 종료",stc:"st-mut",when:"4/28~30",nm:"GH 1차 청년 매입임대 예비",sub:"접수 종료",ty:"공공임대 · 청년 100%↓",who:"소득 초과",lk:"gh"},
+  {v:"no",st:"⌛ 종료",stc:"st-mut",when:"5/4~8",nm:"GH 경기 행복주택 예비 추가모집",sub:"접수 종료",ty:"공공임대 · 청년·신혼 소득",who:"소득 초과",lk:"gh"},
+  {v:"no",st:"⌛ 차기 미정",stc:"st-mut",when:"2025 6차",nm:"SH 장기전세Ⅱ 미리내집",sub:"2025 6차=11/28 공고 / 2026 차수 미공지",ty:"공공임대 · 120/맞180% + 5년무주택",who:"소득 초과 + 5년요건",lk:"miri"},
+];
+const sale=[
+  {v:"warn",st:"🔎 추세(단지·일정 미확정)",stc:"st-warn",when:"연중",nm:"수도권 공공분양 2.9만호",sub:"평년 1.2만 → 2.4배↑ (정부 공급계획)",ty:"공공분양 · 일반공급 순위(소득무관)",who:"매도 후 일반공급·추첨",lk:"lhcal"},
+  {v:"warn",st:"🔎 일정 추정",stc:"st-mut",when:"26.3",nm:"고양창릉 S3 (나눔형) 본청약",sub:"본청약 지연 가능",ty:"공공분양 · 유형별",who:"매도 후(소득구간 확인)",lk:"newhome"},
+  {v:"warn",st:"🔎 일정 추정",stc:"st-mut",when:"26.9",nm:"남양주왕숙2 A2·A7 (나눔형) 본청약",sub:"본청약 지연 가능",ty:"공공분양 · 유형별",who:"매도 후(소득구간 확인)",lk:"newhome"},
+  {v:"warn",st:"🔎 검색기반",stc:"st-mut",when:"연중",nm:"신혼희망타운(공공분양)",sub:"자산 3.62억",ty:"공공분양 · 130/맞벌이200%↓",who:"부부 1,333만 ≈ 200% 경계",lk:"lhcal"},
+  {v:"warn",st:"🔎 시장정보(단지 변동)",stc:"st-mut",when:"상반기",nm:"방배포레스트자이·중화 라온·마포로5구역",sub:"민간분양 예정 단지(미확정)",ty:"민간분양 · 추첨 소득영향 적음",who:"매도 후 추첨",lk:"apply"},
+  {v:"warn",st:"🔎 시장정보(단지 변동)",stc:"st-mut",when:"6월경",nm:"장위푸르지오·목동윤슬자이·드파인아르티아·월계중흥·써밋클라비온·동작센트럴",sub:"민간분양 예정 단지(미확정)",ty:"민간분양 · 일반·추첨",who:"매도 후 추첨",lk:"apply"},
+  {v:"warn",st:"🔎 시장정보(단지 변동)",stc:"st-mut",when:"26.8경",nm:"반포 디에이치 클래스트",sub:"민간분양 예정(미확정)",ty:"민간분양 · 일반·추첨",who:"매도 후(자금규모 큼)",lk:"apply"},
+];
+const llabel={ok:"✅ 가능",warn:"🟡 조건부",info:"❓ 추가정보",no:"❌ 불가"};
+let curFilter="all";
+function lrow(d){
+  const [url,label]=LINK[d.lk];
+  return `<tr class="v-${d.v}">
+    <td class="when">${d.when}</td>
+    <td><span class="nmc">${d.nm}</span>${d.sub?`<div class="notes">${d.sub}</div>`:''}</td>
+    <td>${d.ty}</td>
+    <td><span class="badge b-${d.v}">${llabel[d.v]}</span><div class="whos">${d.who}</div><div class="stt ${d.stc||''}">${d.st||''}</div></td>
+    <td><a class="link" href="${url}" target="_blank">${label} ↗</a></td>
+  </tr>`;
+}
+function renderList(){
+  const f=v=>curFilter==="all"||(curFilter==="yes"&&v!=="no")||(curFilter==="no"&&v==="no");
+  document.getElementById('rentBody').innerHTML=rent.filter(d=>f(d.v)).map(lrow).join('');
+  document.getElementById('saleBody').innerHTML=sale.filter(d=>f(d.v)).map(lrow).join('');
+  const all=[...rent,...sale], c={ok:0,warn:0,no:0,info:0}; all.forEach(d=>c[d.v]++);
+  document.getElementById('lcount').textContent=`임대 ${rent.length} · 분양 ${sale.length} · 전체 ${all.length}건 — ✅ ${c.ok} · 🟡 ${c.warn} · ❌ ${c.no}`;
+}
+document.querySelectorAll('#filter button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#filter button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); curFilter=b.dataset.f; renderList();
+}));
+renderList();
+
+/* ===== 청년 청약후보 (행복주택 청년계층 · 3유형) ===== */
+const youth=[
+ // 우선공급 (20)
+ {nm:"DM7세종(군자동 361-26)",area:25,type:"우선공급",ho:3},
+ {nm:"e편한세상송파파크센트럴(거여2-2)",area:34,type:"우선공급",ho:1},
+ {nm:"e편한세상신촌(북아현1-3)",area:32,type:"우선공급",ho:5},
+ {nm:"강동리엔파크11단지",area:17,type:"우선공급",ho:9},
+ {nm:"강동리엔파크14단지",area:17,type:"우선공급",ho:1},
+ {nm:"경희궁자이(돈의문1)",area:39,type:"우선공급",ho:2},
+ {nm:"꿈의숲아이파크(장위7)",area:39,type:"우선공급",ho:3},
+ {nm:"꿈의숲코오롱하늘채(장위2)",area:32,type:"우선공급",ho:2},
+ {nm:"래미안루센티아(가재울5)",area:34,type:"우선공급",ho:2},
+ {nm:"목동센트럴아이파크위브(신정1-1)",area:34,type:"우선공급",ho:9},
+ {nm:"사당 한누리채",area:25,type:"우선공급",ho:7},
+ {nm:"용산센트럴파크 헤링턴스퀘어(국제4)",area:40,type:"우선공급",ho:1},
+ {nm:"이든채(서울리츠1호)",area:31,type:"우선공급",ho:2},
+ {nm:"이룸채(서울리츠1호)",area:23,type:"우선공급",ho:6},
+ {nm:"이문 아이파크 자이",area:33,type:"우선공급",ho:2},
+ {nm:"제이타워오피스텔(창신동255-1)",area:13,type:"우선공급",ho:2},
+ {nm:"천왕이펜하우스 7",area:29,type:"우선공급",ho:5},
+ {nm:"천왕이펜하우스8단지",area:29,type:"우선공급",ho:4},
+ {nm:"홍제센트럴아이파크(홍제2)",area:34,type:"우선공급",ho:2},
+ {nm:"힐스테이트신촌(북아현1-1)",area:37,type:"우선공급",ho:1},
+ // 일반공급 (20)
+ {nm:"DM7세종(군자동 361-26)",area:25,type:"일반공급",ho:3},
+ {nm:"e편한세상송파파크센트럴(거여2-2)",area:34,type:"일반공급",ho:2},
+ {nm:"e편한세상신촌(북아현1-3)",area:32,type:"일반공급",ho:6},
+ {nm:"강동리엔파크11단지",area:17,type:"일반공급",ho:9},
+ {nm:"강동리엔파크14단지",area:17,type:"일반공급",ho:2},
+ {nm:"경희궁자이(돈의문1)",area:39,type:"일반공급",ho:2},
+ {nm:"꿈의숲아이파크(장위7)",area:39,type:"일반공급",ho:3},
+ {nm:"꿈의숲코오롱하늘채(장위2)",area:32,type:"일반공급",ho:2},
+ {nm:"래미안루센티아(가재울5)",area:34,type:"일반공급",ho:2},
+ {nm:"목동센트럴아이파크위브(신정1-1)",area:34,type:"일반공급",ho:9},
+ {nm:"사당 한누리채",area:25,type:"일반공급",ho:7},
+ {nm:"용산센트럴파크 헤링턴스퀘어(국제4)",area:40,type:"일반공급",ho:1},
+ {nm:"이든채(서울리츠1호)",area:31,type:"일반공급",ho:3},
+ {nm:"이룸채(서울리츠1호)",area:23,type:"일반공급",ho:6},
+ {nm:"이문 아이파크 자이",area:33,type:"일반공급",ho:3},
+ {nm:"제이타워오피스텔(창신동255-1)",area:13,type:"일반공급",ho:2},
+ {nm:"천왕이펜하우스 7",area:29,type:"일반공급",ho:5},
+ {nm:"천왕이펜하우스8단지",area:29,type:"일반공급",ho:4},
+ {nm:"홍제센트럴아이파크(홍제2)",area:34,type:"일반공급",ho:3},
+ {nm:"힐스테이트신촌(북아현1-1)",area:37,type:"일반공급",ho:2},
+ // 예비입주자 (15)
+ {nm:"고덕온빛채",area:29,type:"예비입주자",ho:12},
+ {nm:"대치르엘",area:35,type:"예비입주자",ho:4},
+ {nm:"더헤르미온(봉천동 1666-51)",area:10,type:"예비입주자",ho:2},
+ {nm:"래미안길음센터피스(길음2)",area:33,type:"예비입주자",ho:8},
+ {nm:"마포더클래시",area:32,type:"예비입주자",ho:2},
+ {nm:"상도 청석채",area:23,type:"예비입주자",ho:5},
+ {nm:"송파시그니처롯데캐슬",area:39,type:"예비입주자",ho:2},
+ {nm:"신내 글로리움",area:36,type:"예비입주자",ho:28},
+ {nm:"신내3-3 도시형생활주택",area:29,type:"예비입주자",ho:12},
+ {nm:"신내3-4 도시형생활주택",area:31,type:"예비입주자",ho:30},
+ {nm:"아크로타워스퀘어(영등포1-4)",area:26,type:"예비입주자",ho:10},
+ {nm:"용산롯데캐슬센터포레(효창5)",area:38,type:"예비입주자",ho:7},
+ {nm:"천왕연지마을 1",area:32,type:"예비입주자",ho:11},
+ {nm:"천왕연지마을 2",area:31,type:"예비입주자",ho:6},
+ {nm:"푸르내(서울리츠1호)",area:28,type:"예비입주자",ho:8},
+];
+let csortK="ho", csortDir=-1, cfilter="all";
+function renderCand(){
+  let arr=youth.filter(u=>cfilter==="all"||u.type===cfilter);
+  arr=arr.sort((a,b)=>{
+    const r=(csortK==="nm"||csortK==="type")?String(a[csortK]).localeCompare(String(b[csortK]),'ko'):a[csortK]-b[csortK];
+    return r*csortDir;
+  });
+  document.getElementById('candBody').innerHTML=arr.map(u=>
+    `<tr><td><a href="https://search.naver.com/search.naver?query=${encodeURIComponent(u.nm)}" target="_blank" style="color:var(--accent);text-decoration:none">${u.nm} ↗</a></td><td>${u.area}㎡</td><td>${u.type}</td><td>${u.ho}</td></tr>`).join('');
+  const ho=arr.reduce((s,u)=>s+u.ho,0);
+  const kn={nm:'단지명',area:'면적',type:'공급유형',ho:'호수'};
+  document.getElementById('candCount').textContent=`${cfilter==="all"?"전체":cfilter} ${arr.length}건 · ${ho}호 (전체: 우선69+일반76+예비147=292호) · 정렬: ${kn[csortK]} ${csortDir>0?'↑':'↓'}`;
+  document.querySelectorAll('#view-cand th.sortable').forEach(th=>th.classList.toggle('sorted',th.dataset.k===csortK));
+}
+document.querySelectorAll('#view-cand th.sortable').forEach(th=>th.addEventListener('click',()=>{
+  if(csortK===th.dataset.k) csortDir*=-1; else {csortK=th.dataset.k; csortDir=(csortK==='nm'||csortK==='type')?1:-1;}
+  renderCand();
+}));
+document.querySelectorAll('#candFilter button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#candFilter button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); cfilter=b.dataset.f; renderCand();
+}));
+renderCand();
+
+/* ===== 매물 비교 ===== */
+const CMP_ROWS=[
+ {cat:"기본"},
+ {k:"type",l:"유형"},{k:"loc",l:"위치·교통"},{k:"scale",l:"규모"},{k:"built",l:"준공/연식"},{k:"movein",l:"입주"},
+ {cat:"청약·자격"},
+ {k:"qual",l:"청약자격"},{k:"who",l:"신청주체"},{k:"apply",l:"접수일정"},{k:"sel",l:"선정방식"},
+ {cat:"면적·지분"},
+ {k:"area",l:"전용면적"},{k:"carea",l:"계약면적"},{k:"land",l:"대지지분"},{k:"types",l:"타입수"},
+ {cat:"가격·납부"},
+ {k:"price",l:"분양가"},{k:"pp",l:"전용 평당가"},{k:"pay",l:"납부구조"},{k:"cash",l:"자금 스케줄"},
+ {cat:"자금·대출"},
+ {k:"reg",l:"규제지역"},{k:"loan",l:"대출 여건"},{k:"equity",l:"초기 자기자본"},
+ {cat:"입지·환금·수요"},
+ {k:"transit",l:"생활권"},{k:"resale",l:"환금성"},{k:"rentd",l:"임대수요"},
+ {cat:"세금·비용·전략"},
+ {k:"txch",l:"주택수-청약"},{k:"txt",l:"주택수-세금"},{k:"acq",l:"취득세"},{k:"mgmt",l:"관리비"},{k:"vat",l:"부가세 환급"},
+ {cat:"정성 평가·총평"},
+ {k:"vsmkt",l:"시세 대비"},{k:"otype",l:"시세상승 유형 부합"},{k:"live2",l:"2인 거주 적합"},{k:"strength",l:"장기 강점"},{k:"weak",l:"장기 약점"},{k:"verdict",l:"총평"},
+ {cat:"리스크·확인"},
+ {k:"mapi",l:"마피·역전세"},{k:"why",l:"잔여/미분양 사유"},{k:"check",l:"현장 확인 포인트"},
+];
+const cmpProps=[
+ {name:"왕십리역 어반홈스", c:{
+  type:{v:"오피스텔 + 근린생활시설(상가) 복합건물"},
+  loc:{v:"성동구 도선동 114·115 / 왕십리역(2·5호선·분당선·경의중앙선) 인근, 도심·성수 직주근접",hl:"ok"},
+  scale:{v:"지하3~지상13층 1개동(A동), 오피스텔 42실 중 21실 분양 / 주차 37대"},
+  built:{v:"2026.01.12 사용승인 — 신축",hl:"ok"}, movein:{v:"2026.06 예정 · 잔금 완납 시 즉시 입주"},
+  qual:{v:"분양광고일(26.06.12) 기준 만19세↑ 전국 누구나. 소득·무주택·청약통장 무관, 거주지 무관"},
+  who:{v:"B 명의 권장(A은 다주택 취득세 중과·DSR 포화)"},
+  apply:{v:"청약 06.17~06.23(5일) → 발표 06.26 → 계약 06.29~07.03"},
+  sel:{v:"청약홈 인터넷 전산 추첨, 1인 1실, 군별 예비당첨 900%, 청약금 300만(전액환불)"},
+  area:{v:"전용 32.8~38.0㎡ (약 10~11.5평)"}, carea:{v:"계약 52.5~58.8㎡ (전용률 낮음)"},
+  land:{v:"7.05~7.33㎡ — 토지지분 작음",hl:"warn"}, types:{v:"6개(32E·35A·36C·37B·37F·38D) — 선택폭 넓음"},
+  price:{v:"약 5.81~5.93억(VAT 포함, 타입·층별)"}, pp:{v:"약 5,000만/평 — 높은 편",hl:"warn"},
+  pay:{v:"계약금 10% + 잔금 90% (중도금 분납 없음)"}, cash:{v:"중도금 없이 잔금 일시 → 잔금대출·자기자본 한 번에 필요"},
+  reg:{v:"투기과열지구(성동구)"}, loan:{v:"규제지역+준공 오피스텔 → 담보가 보수적, LTV 낮을 수 있음"}, equity:{v:"계약 시 약 5,800만(10%) + 입주 시 잔금 대부분"},
+  transit:{v:"왕십리 쿼드역세권 — 서울 동북·도심 접근성 최상급",hl:"ok"}, resale:{v:"높음 — 입지 희소성·소형 수요로 매도·전세 회전 빠름",hl:"ok"}, rentd:{v:"전용 30㎡대 → 1인 직장인 월세·전세 수요 꾸준",hl:"ok"},
+  txch:{v:"오피스텔=주택법상 주택 아님 → 아파트 청약 무주택 유지(B 자격 안 깨짐)",hl:"ok"},
+  txt:{v:"주거용 사용 시 취득세·종부세·양도세에서 주택수 포함될 수 있음"},
+  acq:{v:"A 보유 시 다주택 중과 위험 → B 명의가 유리"}, mgmt:{v:"오피스텔 특성상 아파트보다 관리비 단가 높은 편"}, vat:{v:"임대사업자(일반과세) 등록 시 건물분 부가세 환급 가능(계약 후 20일내 등록)"},
+  vsmkt:{v:"전용 30㎡대에 5.8억대는 평당으로 비싼 편 — 왕십리 프리미엄을 선반영한 가격. 인근 신축 오피스텔 실거래·전세가 대비 마피 여부 반드시 확인",hl:"warn"},
+  otype:{v:"❌ 차익형 아님 — 소형(32~38㎡)+소단지(42실)는 가장 안 오르는 조합. 아파텔(60㎡↑·방3·대단지) 미해당. 단 왕십리 초역세권이라 ‘임대수익형’으로는 가격 방어. 시세차익 기대 X",hl:"warn"},
+  live2:{v:"전용 10~11.5평 → 2인 거주는 타이트. 1인·신혼 극초기용. 짐 많으면 좁음",hl:"warn"},
+  strength:{v:"① 쿼드역세권 직주근접으로 1인 임대수요 안정 ② 신축이라 초기 하자·관리 양호 ③ 환금성(매도·전세) 우수 ④ 소형이라 월세 회전 빠름",hl:"ok"},
+  weak:{v:"① 오피스텔이라 아파트 대비 시세차익 제한 ② 소형이라 가족 확장 시 부적합 ③ 상가 복합 → 소음·냄새 ④ 분양가 이미 높아 추가 상승폭은 입지에 의존"},
+  verdict:{v:"‘직주근접 1인 임대·실거주’엔 강하지만 ‘둘이 살 집·시세차익’엔 약함. 마피 확인 후, 임대·징검다리 용도로 접근 권장"},
+  mapi:{v:"분양가 높음 → 입주 즉시 마이너스 프리미엄 위험. 인근 실거래·전세가 대조 필수",hl:"warn"}, why:{v:"신축 신규분양(21/42실)"}, check:{v:"상가 소음·실외기 위치, 소형 평면 가구 배치, 인근 실거래·전세 시세"},
+ }},
+ {name:"선유 노블레르", c:{
+  type:{v:"오피스텔(전층, 1층 주차·통신, 상가 거의 없음)"},
+  loc:{v:"영등포구 양평동6가 2-1 / 선유도·당산역 생활권, 여의도·마포·강서 접근. 준공업지역",hl:"warn"},
+  scale:{v:"지하1~지상9층 101·102동, 오피스텔 46실 중 18실 분양 / 주차 37대(기계식 28)"},
+  built:{v:"2022.10.27 사용승인 — 준공 3년+(준신축~구축)",hl:"warn"}, movein:{v:"2026.07 예정 · 잔금 완납 시 즉시 입주"},
+  qual:{v:"분양광고일(26.06.12) 기준 만19세↑ 전국 누구나. 소득·무주택·청약통장 무관, 거주지 무관"},
+  who:{v:"B 명의 권장(A은 다주택 취득세 중과·DSR 포화)"},
+  apply:{v:"청약 06.17~06.19(3일) → 발표 06.26 → 계약 06.29~06.30"},
+  sel:{v:"청약홈 인터넷 전산 추첨, 1인 1실, 군별 예비당첨 900%, 청약금 300만(전액환불)"},
+  area:{v:"전용 49.37㎡ (약 15평) — 단일",hl:"ok"}, carea:{v:"계약 64.65㎡"},
+  land:{v:"16.58㎡ — 어반홈스의 약 2배, 토지지분 큼",hl:"ok"}, types:{v:"1개(A타입) — 층·향만 차이, 선택폭 좁음",hl:"warn"},
+  price:{v:"약 5.87~5.97억(VAT 포함, 층별)"}, pp:{v:"약 3,900만/평 — 면적당 저렴",hl:"ok"},
+  pay:{v:"계약금 10% + 중도금 10%(계약+10일) + 잔금 80%(30·60일)"}, cash:{v:"계약 후 약 2개월 내 100% 납입 → 유동성 압박, 대출·현금 빨리 맞춰야",hl:"warn"},
+  reg:{v:"투기과열+청약과열지역(영등포구)",hl:"warn"}, loan:{v:"규제지역+준공 오피스텔 → 담보가 보수적, LTV 낮을 수 있음"}, equity:{v:"계약+중도 약 1.2억(20%)을 2개월 내"},
+  transit:{v:"선유도·당산/여의도·마포·강서 라인 — 양호하나 인지도는 왕십리보다 아래",hl:"warn"}, resale:{v:"낮음 — 구축·준공업 입지·3년 미분양 이력으로 환금성 의문",hl:"warn"}, rentd:{v:"전용 49㎡ → 1~2인 전월세 수요 양호, 월세·전세 단가 잘 나오는 타입",hl:"ok"},
+  txch:{v:"오피스텔=주택법상 주택 아님 → 아파트 청약 무주택 유지(B 자격 안 깨짐)",hl:"ok"},
+  txt:{v:"주거용 사용 시 취득세·종부세·양도세에서 주택수 포함될 수 있음"},
+  acq:{v:"A 보유 시 다주택 중과 위험 → B 명의가 유리"}, mgmt:{v:"오피스텔 특성상 아파트보다 관리비 단가 높은 편"}, vat:{v:"임대사업자(일반과세) 등록 시 건물분 부가세 환급 가능(계약 후 20일내 등록)"},
+  vsmkt:{v:"같은 5.9억대에 전용 49㎡·대지지분 2배 → 면적 가성비 우위. 단 3년 넘게 안 팔린 건 ‘시장이 이 가격을 안 받아줬다’는 신호일 수 있어 인근 실거래·전세가 반드시 확인",hl:"warn"},
+  otype:{v:"❌ 거의 미해당 — 대단지·아파텔·핵심입지 어디에도 안 걸림. 구축+준공업+3년 미분양 = 시세상승 요소 사실상 없음(미분양 자체가 시장의 판정). 실거주 가성비 외 투자가치 낮음",hl:"warn"},
+  live2:{v:"전용 약 15평 → 2인 거주 여유, 1.5룸 구성 가능. 실거주 만족도 높음",hl:"ok"},
+  strength:{v:"① 넓은 전용+큰 대지지분 → 장기 토지가치·정비사업 시 유리 ② 여의도·당산 직주근접 1~2인 전월세 수요 ③ 실거주+임대 겸용 ④ 전층 오피스텔이라 상가 소음 적음",hl:"ok"},
+  weak:{v:"① 양평동 준공업 입지 인지도 낮음 ② 구축(2022)+단일타입 ③ 3년+ 미분양 이력 → 환금성·시세상승 의문 ④ 오피스텔 시세차익 제한 ⑤ 2개월 내 100% 납입 부담"},
+  verdict:{v:"같은 값에 넓게 ‘실거주’할 거면 우위. 단 미분양 이유(입지/가격) 규명이 선결. 투자·환금보다 실거주 비중이 높을 때 적합"},
+  mapi:{v:"3년+ 미분양 = 시세가 분양가를 못 따라왔을 가능성 → 실거래·전세가 대조 필수, 역전세 주의",hl:"warn"}, why:{v:"2022 준공 후 3년+ 미분양(입지/구축/가격)",hl:"warn"}, check:{v:"미분양 진짜 사유, 실제 임대시세, 준공업 환경(소음·차량), 기계식 주차 편의"},
+ }},
+];
+let cmpVisible=cmpProps.map((_,i)=>i);
+const cmpCollapsed=new Set();
+function renderCmpCols(){
+ document.getElementById('cmpCols').innerHTML=
+  '<span style="color:var(--muted);font-size:12.5px;align-self:center;padding:0 6px">매물</span>'+
+  cmpProps.map((p,i)=>`<button data-i="${i}" class="${cmpVisible.includes(i)?'active':''}">${cmpVisible.includes(i)?'':'+ '}${p.name}</button>`).join('');
+}
+function renderCmp(){
+ const vis=cmpProps.filter((_,i)=>cmpVisible.includes(i));
+ const tbl=document.getElementById('cmpTable');
+ if(!vis.length){ tbl.innerHTML='<tbody><tr><td style="padding:14px;color:var(--muted)">매물을 1개 이상 선택하세요.</td></tr></tbody>'; return; }
+ let head="<thead><tr><th>항목</th>"+vis.map(p=>`<th>${p.name}</th>`).join("")+"</tr></thead>";
+ let body="<tbody>", curCat="";
+ CMP_ROWS.forEach(r=>{
+  if(r.cat){ curCat=r.cat; const col=cmpCollapsed.has(r.cat);
+   body+=`<tr class="catrow" data-cat="${r.cat}"><td colspan="${vis.length+1}">${col?'▶':'▼'} ${r.cat}</td></tr>`; }
+  else if(!cmpCollapsed.has(curCat)){
+   body+=`<tr><td>${r.l}</td>`+vis.map(p=>{const c=p.c[r.k]||{v:"-"};return `<td class="${c.hl?'c-'+c.hl:''}">${c.v}</td>`}).join("")+"</tr>"; }
+ });
+ tbl.innerHTML=head+body+"</tbody>";
+}
+document.getElementById('cmpCols').addEventListener('click',e=>{
+ const b=e.target.closest('button'); if(!b)return;
+ const i=+b.dataset.i;
+ if(cmpVisible.includes(i)) cmpVisible=cmpVisible.filter(x=>x!==i); else cmpVisible.push(i);
+ renderCmpCols(); renderCmp();
+});
+document.getElementById('cmpTable').addEventListener('click',e=>{
+ const tr=e.target.closest('tr.catrow'); if(!tr)return;
+ const cat=tr.dataset.cat;
+ if(cmpCollapsed.has(cat)) cmpCollapsed.delete(cat); else cmpCollapsed.add(cat);
+ renderCmp();
+});
+renderCmpCols(); renderCmp();
+</script>
+</body>
+</html>
